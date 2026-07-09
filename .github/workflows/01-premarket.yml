@@ -1,0 +1,47 @@
+name: 盘前大盘复盘
+
+on:
+  schedule:
+    - cron: '30 0 * * 1-5'
+  workflow_dispatch:
+
+concurrency:
+  group: stock-analysis
+  cancel-in-progress: false
+
+jobs:
+  market-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v5
+      - name: 设置 Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - name: 安装依赖
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: 创建目录
+        run: mkdir -p data logs reports
+      - name: 盘前大盘复盘
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_BASE_URL: ${{ vars.OPENAI_BASE_URL || secrets.OPENAI_BASE_URL }}
+          OPENAI_MODEL: ${{ vars.OPENAI_MODEL || secrets.OPENAI_MODEL }}
+          ANSPIRE_API_KEYS: ${{ secrets.ANSPIRE_API_KEYS }}
+          BOCHA_API_KEYS: ${{ secrets.BOCHA_API_KEYS }}
+          TAVILY_API_KEYS: ${{ secrets.TAVILY_API_KEYS }}
+          PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
+          PUSHPLUS_TOPIC: ${{ vars.PUSHPLUS_TOPIC || secrets.PUSHPLUS_TOPIC }}
+          STOCK_LIST: ${{ vars.STOCK_LIST || secrets.STOCK_LIST || '600519' }}
+          MARKET_REVIEW_REGION: cn
+          MARKET_REVIEW_COLOR_SCHEME: green_up
+          REPORT_TYPE: ${{ vars.REPORT_TYPE || 'full' }}
+          TRADING_DAY_CHECK_ENABLED: 'true'
+          REALTIME_SOURCE_PRIORITY: 'tencent,akshare_sina,efinance,akshare_em'
+          LOG_LEVEL: INFO
+        run: python main.py --market-review
